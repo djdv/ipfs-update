@@ -302,19 +302,16 @@ func findGoodInstallDir() (string, error) {
 	// GOPATH(s)/bin
 	gopath := os.Getenv("GOPATH")
 	if gopath != "" {
-		gopaths := strings.Split(gopath, string(os.PathListSeparator))
-		for i, _ := range gopaths {
-			gopaths[i] = filepath.Join(gopaths[i], "bin")
+		for _, singlePath := range strings.Split(gopath, string(os.PathListSeparator)) {
+			candidates = append(candidates, filepath.Join(singlePath, "bin"))
 		}
-		candidates = append(candidates, gopaths...)
 	}
 
 	if runtime.GOOS == "windows" {
 		// Use Go's default bin path if GOPATH is unset
 		if gopath == "" {
 			if profile := os.Getenv("USERPROFILE"); profile != "" {
-				profilebin := filepath.Join(profile, "go", "bin")
-				candidates = append(candidates, profilebin)
+				candidates = append(candidates, filepath.Join(profile, "go", "bin"))
 			}
 		}
 
@@ -328,13 +325,18 @@ func findGoodInstallDir() (string, error) {
 			candidates = append(candidates, filepath.Dir(ep))
 		}
 	} else {
+		home := os.Getenv("HOME")
+		// Use Go's default bin path if GOPATH is unset
+		if gopath == "" && home != "" {
+			candidates = append(candidates, filepath.Join(home, "go", "bin"))
+		}
+
 		candidates = append(candidates, "/usr/local/bin")
 
 		// Let's try user's $HOME/bin too
 		// but not root because no one installs to /root/bin
-		if home := os.Getenv("HOME"); home != "" && os.Getenv("USER") != "root" {
-			homebin := filepath.Join(home, "bin")
-			candidates = append(candidates, homebin)
+		if home != "" && os.Getenv("USER") != "root" {
+			candidates = append(candidates, filepath.Join(home, "bin"))
 		}
 		// Finally /usr/bin
 		candidates = append(candidates, "/usr/bin")
